@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      VERSION:
+        description: 'alist version'
+        required: true
+        default: 'v3.41.0'
+      VERSION-WEB:
+        description: 'alist-web version'
+        required: true
+        default: 'latest'
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Build
+        uses: vmactions/freebsd-vm@v1.1.7
+        with:
+          usesh: true
+          prepare: |
+            pkg install -y git node go gcc wget bash
+          run: | 
+            git clone https://github.com/AlistGo/alist -b ${{ github.event.inputs.VERSION }}
+            cd alist/public && wget -q https://github.com/AlistGo/alist-web/releases/${{ github.event.inputs.VERSION-WEB }}/download/dist.tar.gz && tar -xf dist.tar.gz && rm -rf dist.tar.gz
+            cd ..
+            bash ../compile.sh
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4.5.0
+        with:
+          name: alist-FreeBSD
+          path: alist/alist
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          echo "release_tag=${{ github.event.inputs.VERSION }}" >> $GITHUB_OUTPUT
+          touch release.txt
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        if: steps.tag.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          body_path: release.txt
+          files: alist/alist
