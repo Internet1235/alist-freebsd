@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@main
 
       - name: Build
+        if: github.event.inputs.VERSION != 'beta' && github.event.inputs.VERSION != 'main'
         uses: vmactions/freebsd-vm@v1.1.7
         with:
           usesh: true
@@ -32,23 +33,35 @@ jobs:
             cd ..
             bash ../compile.sh
 
+      - name: Build Beta
+        if: github.event.inputs.VERSION == 'beta' || github.event.inputs.VERSION == 'main'
+        uses: vmactions/freebsd-vm@v1.1.7
+        with:
+          usesh: true
+          prepare: |
+            pkg install -y git node go gcc wget bash
+          run: | 
+            git clone https://github.com/AlistGo/alist -b ${{ github.event.inputs.VERSION }}
+            cd alist/public && git clone https://github.com/alist-org/web-dist.git -b dev && cp -r web-dist/* . && rm -rf web-dist
+            cd ..
+            bash ../compile.sh
+
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4.5.0
         with:
-          name: alist-FreeBSD
+          name: Alist-FreeBSD
           path: alist/alist
 
       - name: Generate release tag
         id: tag
-        if: ${{ github.event.inputs.VERSION }} != 'beta'
         run: |
           echo "release_tag=${{ github.event.inputs.VERSION }}" >> $GITHUB_OUTPUT
           touch release.txt
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload to release
+        if: steps.tag.outputs.status == 'success' && github.event.inputs.VERSION != 'beta' && github.event.inputs.VERSION != 'main'
         uses: softprops/action-gh-release@v2
-        if: steps.tag.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -57,8 +70,8 @@ jobs:
           files: alist/alist
 
       - name: Upload to release
+        if: steps.tag.outputs.status == 'success' && github.event.inputs.VERSION == 'beta' || github.event.inputs.VERSION == 'main'
         uses: softprops/action-gh-release@v2
-        if: ${{ github.event.inputs.VERSION }} == 'beta'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -66,5 +79,3 @@ jobs:
           name: AList Beta Version
           body_path: release.txt
           files: alist/alist
-
-      
