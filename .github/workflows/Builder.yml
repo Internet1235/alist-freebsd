@@ -22,7 +22,7 @@ jobs:
 
       - name: Build
         if: github.event.inputs.VERSION != 'beta' && github.event.inputs.VERSION != 'main'
-        uses: vmactions/freebsd-vm@v1.1.7
+        uses: vmactions/freebsd-vm@main
         with:
           usesh: true
           prepare: |
@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Beta
         if: github.event.inputs.VERSION == 'beta' || github.event.inputs.VERSION == 'main'
-        uses: vmactions/freebsd-vm@v1.1.7
+        uses: vmactions/freebsd-vm@main
         with:
           usesh: true
           prepare: |
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload to release
         if: steps.tag.outputs.status == 'success' && github.event.inputs.VERSION != 'beta' && github.event.inputs.VERSION != 'main'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload to release
         if: steps.tag.outputs.status == 'success' && github.event.inputs.VERSION == 'beta' || github.event.inputs.VERSION == 'main'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
